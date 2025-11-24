@@ -139,10 +139,14 @@ export default function HomePage() {
     setAnalysisError(null);
 
     try {
+      console.log('📸 Iniciando análise de imagem...');
+      
       // Validar tamanho do arquivo (máx 5MB)
       if (imageFile.size > 5 * 1024 * 1024) {
         throw new Error('A imagem é muito grande. Por favor, escolha uma imagem menor que 5MB.');
       }
+
+      console.log('✅ Tamanho da imagem validado:', (imageFile.size / 1024 / 1024).toFixed(2) + 'MB');
 
       // Converter imagem para base64
       const base64Image = await new Promise<string>((resolve, reject) => {
@@ -152,7 +156,10 @@ export default function HomePage() {
         reader.readAsDataURL(imageFile);
       });
 
+      console.log('✅ Imagem convertida para base64');
+
       // Chamar API de análise de calorias
+      console.log('🚀 Enviando para API de análise...');
       const response = await fetch('/api/analyze-food', {
         method: 'POST',
         headers: {
@@ -164,18 +171,25 @@ export default function HomePage() {
         }),
       });
 
+      console.log('📡 Resposta recebida:', response.status);
+
       const data = await response.json();
+      console.log('📦 Dados recebidos:', data);
 
       if (!response.ok) {
         // Tratar erros específicos
         if (response.status === 401) {
-          throw new Error('🔑 Chave da API OpenAI inválida. Configure nas variáveis de ambiente.');
-        } else if (response.status === 500 && data.message) {
+          throw new Error('🔑 Chave da API OpenAI inválida ou expirada.\n\nVerifique se a chave está configurada corretamente nas variáveis de ambiente.');
+        } else if (response.status === 429) {
+          throw new Error('⏱️ Limite de requisições excedido.\n\nAguarde alguns minutos e tente novamente.');
+        } else if (data.message) {
           throw new Error(data.message);
         } else {
           throw new Error(data.error || 'Erro ao analisar imagem');
         }
       }
+      
+      console.log('✅ Análise concluída com sucesso!');
       
       // Mostrar resultado da análise
       setAnalysisResult({
@@ -190,12 +204,12 @@ export default function HomePage() {
       setShowAnalysisResult(true);
       
     } catch (error) {
-      console.error('Erro ao analisar imagem:', error);
+      console.error('❌ Erro ao analisar imagem:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao analisar a imagem';
       setAnalysisError(errorMessage);
       
-      // Mostrar erro em um alerta
-      alert(`❌ ${errorMessage}\n\nTente novamente ou verifique se:\n• A imagem está clara\n• A API Key está configurada\n• Você tem conexão com a internet`);
+      // Mostrar erro em um alerta mais detalhado
+      alert(`❌ Erro na Análise\n\n${errorMessage}\n\n💡 Dicas:\n• Certifique-se de que a imagem está clara e bem iluminada\n• Verifique se a API Key da OpenAI está configurada\n• Tente tirar outra foto da refeição\n• Verifique sua conexão com a internet`);
     } finally {
       setIsAnalyzing(false);
     }

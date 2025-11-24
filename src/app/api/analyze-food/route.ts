@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
     if (!OPENAI_API_KEY) {
+      console.error('❌ OPENAI_API_KEY não encontrada nas variáveis de ambiente');
       return NextResponse.json(
         { 
           error: 'Chave da API OpenAI não configurada',
@@ -23,6 +24,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log('✅ Iniciando análise de imagem com OpenAI Vision...');
 
     // Chamar API da OpenAI Vision
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -78,7 +81,7 @@ IMPORTANTE:
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Erro da API OpenAI:', errorData);
+      console.error('❌ Erro da API OpenAI:', errorData);
       
       if (response.status === 401) {
         return NextResponse.json(
@@ -111,8 +114,10 @@ IMPORTANTE:
     }
 
     const data = await response.json();
+    console.log('✅ Resposta recebida da OpenAI');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('❌ Resposta inválida da API OpenAI:', data);
       return NextResponse.json(
         { 
           error: 'Resposta inválida da API OpenAI',
@@ -123,6 +128,7 @@ IMPORTANTE:
     }
 
     const content = data.choices[0].message.content;
+    console.log('📝 Conteúdo recebido:', content.substring(0, 200) + '...');
     
     // Tentar extrair JSON da resposta (caso venha com markdown)
     let analysisResult;
@@ -130,9 +136,10 @@ IMPORTANTE:
       // Remover possíveis markdown code blocks
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysisResult = JSON.parse(cleanContent);
+      console.log('✅ JSON parseado com sucesso');
     } catch (parseError) {
-      console.error('Erro ao fazer parse do JSON:', parseError);
-      console.log('Conteúdo recebido:', content);
+      console.error('❌ Erro ao fazer parse do JSON:', parseError);
+      console.log('📄 Conteúdo completo recebido:', content);
       
       // Fallback: tentar extrair informações básicas
       return NextResponse.json(
@@ -147,6 +154,7 @@ IMPORTANTE:
 
     // Validar estrutura do resultado
     if (!analysisResult.calories || typeof analysisResult.calories !== 'number') {
+      console.error('❌ Análise incompleta - calorias não encontradas:', analysisResult);
       return NextResponse.json(
         { 
           error: 'Análise incompleta',
@@ -155,6 +163,12 @@ IMPORTANTE:
         { status: 500 }
       );
     }
+
+    console.log('✅ Análise concluída com sucesso:', {
+      calories: analysisResult.calories,
+      foods: analysisResult.foods?.length || 0,
+      confidence: analysisResult.confidence
+    });
 
     return NextResponse.json({
       calories: Math.round(analysisResult.calories),
@@ -166,7 +180,7 @@ IMPORTANTE:
     });
 
   } catch (error) {
-    console.error('Erro ao processar análise:', error);
+    console.error('❌ Erro ao processar análise:', error);
     return NextResponse.json(
       { 
         error: 'Erro interno ao processar análise',
