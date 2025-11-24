@@ -160,18 +160,24 @@ export default function HomePage() {
 
   // Iniciar rastreamento
   const startTracking = () => {
+    // Verificar se geolocalização é suportada
     if (!navigator.geolocation) {
-      alert('❌ Geolocalização não suportada pelo seu navegador');
+      alert('❌ Geolocalização não é suportada pelo seu navegador.\n\nPor favor, use um navegador moderno como Chrome, Firefox ou Safari.');
       return;
     }
+
+    console.log('🚀 Solicitando permissão de localização...');
 
     // Solicitar permissão de localização
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('✅ Permissão concedida! Iniciando rastreamento...');
+        
         // Permissão concedida - iniciar rastreamento
         setIsTracking(true);
         setCurrentDistance(0);
         setCurrentDuration(0);
+        setCurrentSpeed(0);
         setLocations([]);
         startTimeRef.current = Date.now();
 
@@ -183,6 +189,8 @@ export default function HomePage() {
         };
         setLocations([firstLocation]);
 
+        console.log('📍 Primeira localização registrada:', firstLocation);
+
         // Iniciar rastreamento contínuo de posição
         watchIdRef.current = navigator.geolocation.watchPosition(
           (position) => {
@@ -191,6 +199,8 @@ export default function HomePage() {
               longitude: position.coords.longitude,
               timestamp: Date.now(),
             };
+
+            console.log('📍 Nova localização:', newLocation);
 
             setLocations((prev) => {
               const updated = [...prev, newLocation];
@@ -205,6 +215,8 @@ export default function HomePage() {
                   newLocation.longitude
                 );
                 
+                console.log('📏 Distância calculada:', distance.toFixed(4), 'km');
+                
                 setCurrentDistance((prevDist) => prevDist + distance);
               }
               
@@ -212,8 +224,25 @@ export default function HomePage() {
             });
           },
           (error) => {
-            console.error('Erro ao obter localização:', error);
-            alert('❌ Erro ao acessar localização. Verifique as permissões.');
+            console.error('❌ Erro ao obter localização:', error);
+            
+            let errorMessage = '❌ Erro ao rastrear localização.\n\n';
+            
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage += '🔒 Permissão negada. Permita o acesso à localização nas configurações.';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage += '📍 Localização indisponível. Verifique se o GPS está ativado.';
+                break;
+              case error.TIMEOUT:
+                errorMessage += '⏱️ Tempo esgotado. Tente novamente.';
+                break;
+              default:
+                errorMessage += '❓ Erro desconhecido.';
+            }
+            
+            alert(errorMessage);
             stopTracking();
           },
           {
@@ -223,39 +252,42 @@ export default function HomePage() {
           }
         );
 
-        // Atualizar duração a cada segundo
+        // Atualizar duração e velocidade a cada segundo
         intervalRef.current = setInterval(() => {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
           setCurrentDuration(elapsed);
           
           // Calcular velocidade média (km/h)
-          if (elapsed > 0) {
-            setCurrentSpeed((prevDistance) => {
-              return (prevDistance / elapsed) * 3600;
-            });
-          }
+          setCurrentSpeed((prevSpeed) => {
+            // Usar currentDistance do estado mais recente
+            const distance = currentDistance;
+            if (elapsed > 0 && distance > 0) {
+              return (distance / elapsed) * 3600;
+            }
+            return 0;
+          });
         }, 1000);
 
         console.log('✅ Rastreamento iniciado com sucesso!');
       },
       (error) => {
         // Permissão negada ou erro
-        console.error('Erro ao solicitar permissão:', error);
+        console.error('❌ Erro ao solicitar permissão:', error);
         
         let errorMessage = '❌ Não foi possível acessar sua localização.\n\n';
         
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage += '🔒 Permissão negada. Por favor, permita o acesso à localização nas configurações do navegador.';
+            errorMessage += '🔒 Permissão negada.\n\nPara usar o rastreamento GPS:\n1. Clique no ícone de cadeado/informação na barra de endereço\n2. Permita o acesso à localização\n3. Recarregue a página e tente novamente';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage += '📍 Localização indisponível. Verifique se o GPS está ativado.';
+            errorMessage += '📍 Localização indisponível.\n\nVerifique se:\n• O GPS está ativado no seu dispositivo\n• Você está em um local com sinal GPS\n• O navegador tem permissão para acessar localização';
             break;
           case error.TIMEOUT:
-            errorMessage += '⏱️ Tempo esgotado ao tentar obter localização. Tente novamente.';
+            errorMessage += '⏱️ Tempo esgotado ao tentar obter localização.\n\nTente novamente em alguns segundos.';
             break;
           default:
-            errorMessage += '❓ Erro desconhecido ao acessar localização.';
+            errorMessage += '❓ Erro desconhecido ao acessar localização.\n\nVerifique as configurações do seu navegador.';
         }
         
         alert(errorMessage);
@@ -270,6 +302,8 @@ export default function HomePage() {
 
   // Parar rastreamento
   const stopTracking = () => {
+    console.log('🛑 Parando rastreamento...');
+    
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -296,6 +330,8 @@ export default function HomePage() {
         locations: locations,
       };
 
+      console.log('💾 Salvando sessão:', session);
+
       const updatedSessions = [...activitySessions, session];
       setActivitySessions(updatedSessions);
       localStorage.setItem('activitySessions', JSON.stringify(updatedSessions));
@@ -304,14 +340,7 @@ export default function HomePage() {
       setTotalDistance((prev) => prev + currentDistance);
       setCaloriesBurned((prev) => prev + session.caloriesBurned);
 
-      alert(`✅ Atividade salva!
-
-📍 Distância: ${currentDistance.toFixed(2)} km
-⏱️ Duração: ${formatDuration(currentDuration)}
-🔥 Calorias: ${session.caloriesBurned} kcal
-⚡ Velocidade média: ${currentSpeed.toFixed(1)} km/h
-
-Parabéns pelo treino! 💪`);
+      alert(`✅ Atividade salva com sucesso!\n\n📍 Distância: ${currentDistance.toFixed(2)} km\n⏱️ Duração: ${formatDuration(currentDuration)}\n🔥 Calorias: ${session.caloriesBurned} kcal\n⚡ Velocidade média: ${currentSpeed.toFixed(1)} km/h\n\nParabéns pelo treino! 💪`);
     }
 
     setIsTracking(false);
@@ -319,6 +348,8 @@ Parabéns pelo treino! 💪`);
     setCurrentDuration(0);
     setCurrentSpeed(0);
     setLocations([]);
+    
+    console.log('✅ Rastreamento finalizado!');
   };
 
   // Formatar duração
