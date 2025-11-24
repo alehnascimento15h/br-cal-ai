@@ -100,8 +100,12 @@ export default function HomePage() {
       setUserName(userData.name);
       setCaloriesGoal(userData.caloriesGoal || 2000);
       
-      if (userData.weight) {
-        setWaterGoal(userData.weight * 35);
+      // Carregar meta de água do perfil (calculada no cadastro)
+      if (userData.waterGoal) {
+        setWaterGoal(userData.waterGoal);
+      } else if (userData.currentWeight) {
+        // Fallback: calcular se não existir
+        setWaterGoal(Math.round(parseFloat(userData.currentWeight) * 35));
       }
 
       // Carregar refeições do localStorage
@@ -451,6 +455,67 @@ export default function HomePage() {
               Restantes: <span className="font-bold text-green-600">{caloriesRemaining}</span> kcal
             </p>
           </div>
+        </div>
+
+        {/* Meta de Água Diária */}
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl p-6 border border-blue-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                <Droplet className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-blue-900">Hidratação Diária</h3>
+                <p className="text-sm text-blue-600">Meta: {waterGoal} ml</p>
+              </div>
+            </div>
+            <span className="text-2xl font-bold text-blue-900">{waterPercentage.toFixed(0)}%</span>
+          </div>
+
+          {/* Barra de Progresso de Água */}
+          <div className="w-full bg-blue-100 rounded-full h-4 overflow-hidden mb-4">
+            <div 
+              className={`h-full bg-gradient-to-r ${getWaterProgressColor()} transition-all duration-500`}
+              style={{ width: `${Math.min(waterPercentage, 100)}%` }}
+            />
+          </div>
+
+          {/* Quantidade Atual */}
+          <div className="text-center mb-4">
+            <p className="text-3xl font-bold text-blue-900">{waterConsumed} ml</p>
+            <p className="text-sm text-blue-600">
+              Faltam {Math.max(0, waterGoal - waterConsumed)} ml para sua meta
+            </p>
+          </div>
+
+          {/* Botões de Adição Rápida */}
+          <div className="grid grid-cols-4 gap-3">
+            {[200, 300, 500, 1000].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => handleAddWater(amount)}
+                disabled={waterConsumed >= waterGoal}
+                className={`p-4 rounded-xl font-bold transition-all ${
+                  waterConsumed >= waterGoal
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
+                }`}
+              >
+                <Droplet className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-xs">+{amount}ml</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Mensagem de Conquista */}
+          {waterConsumed >= waterGoal && (
+            <div className="mt-4 bg-green-500 text-white rounded-xl p-4 text-center animate-fade-in">
+              <p className="font-bold flex items-center justify-center gap-2">
+                <Check className="w-5 h-5" />
+                Meta de água atingida! 🎉
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Refeições do Dia */}

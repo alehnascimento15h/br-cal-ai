@@ -51,8 +51,18 @@ export default function CadastroPage() {
     if (currentStepIndex < totalSteps - 1) {
       setStep(steps[currentStepIndex + 1]);
     } else {
-      // Salvar dados e ir para home
-      localStorage.setItem('userProfile', JSON.stringify(formData));
+      // Calcular meta de água baseada no peso (35ml por kg)
+      const weight = parseFloat(formData.currentWeight);
+      const waterGoal = weight > 0 ? Math.round(weight * 35) : 2500;
+      
+      // Salvar dados com meta de água calculada
+      const profileData = {
+        ...formData,
+        waterGoal,
+        caloriesGoal: 2000, // Valor padrão, pode ser calculado depois
+      };
+      
+      localStorage.setItem('userProfile', JSON.stringify(profileData));
       router.push('/home');
     }
   };
@@ -258,7 +268,7 @@ export default function CadastroPage() {
           <div className="space-y-6 animate-fade-in">
             <div>
               <h2 className="text-3xl font-bold mb-2">Qual é seu peso atual?</h2>
-              <p className="text-gray-600">Seja honesto, isso é só para você</p>
+              <p className="text-gray-600">Usaremos para calcular sua meta de água diária</p>
             </div>
 
             <div className="relative">
@@ -272,6 +282,26 @@ export default function CadastroPage() {
               />
               <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">kg</span>
             </div>
+
+            {/* Mostrar meta de água calculada */}
+            {formData.currentWeight && parseFloat(formData.currentWeight) > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                    <Scale className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Meta de Água Calculada</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {Math.round(parseFloat(formData.currentWeight) * 35)} ml/dia
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700">
+                  💧 Recomendação: 35ml de água por kg de peso corporal
+                </p>
+              </div>
+            )}
           </div>
         )}
 
