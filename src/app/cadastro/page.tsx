@@ -6,7 +6,7 @@ import { Button } from '@/components/custom/Button';
 import { OptionCard } from '@/components/custom/OptionCard';
 import { ProgressBar } from '@/components/custom/ProgressBar';
 import { OBSTACLES, ACHIEVEMENTS } from '@/lib/types';
-import { ArrowLeft, User, Mail, Lock, Calendar, Dumbbell, Target, Scale, TrendingUp, Heart, Star } from 'lucide-react';
+import { ArrowLeft, User, Mail, Lock, Calendar, Dumbbell, Target, Scale, TrendingUp, Heart, Star, CreditCard, Shield } from 'lucide-react';
 
 type Step = 
   | 'personal' 
@@ -16,7 +16,8 @@ type Step =
   | 'target-weight' 
   | 'obstacles' 
   | 'achievements'
-  | 'testimonials';
+  | 'testimonials'
+  | 'checkout';
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function CadastroPage() {
     achievements: [] as string[],
   });
 
-  const steps: Step[] = ['personal', 'workouts', 'goal', 'current-weight', 'target-weight', 'obstacles', 'achievements', 'testimonials'];
+  const steps: Step[] = ['personal', 'workouts', 'goal', 'current-weight', 'target-weight', 'obstacles', 'achievements', 'testimonials', 'checkout'];
   const currentStepIndex = steps.indexOf(step);
   const totalSteps = steps.length;
 
@@ -50,21 +51,33 @@ export default function CadastroPage() {
   const handleNext = () => {
     if (currentStepIndex < totalSteps - 1) {
       setStep(steps[currentStepIndex + 1]);
-    } else {
-      // Calcular meta de água baseada no peso (35ml por kg)
-      const weight = parseFloat(formData.currentWeight);
-      const waterGoal = weight > 0 ? Math.round(weight * 35) : 2500;
-      
-      // Salvar dados com meta de água calculada
-      const profileData = {
-        ...formData,
-        waterGoal,
-        caloriesGoal: 2000, // Valor padrão, pode ser calculado depois
-      };
-      
-      localStorage.setItem('userProfile', JSON.stringify(profileData));
-      router.push('/home');
     }
+  };
+
+  const handleFinish = () => {
+    // Calcular meta de água baseada no peso (35ml por kg)
+    const weight = parseFloat(formData.currentWeight);
+    const waterGoal = weight > 0 ? Math.round(weight * 35) : 2500;
+    
+    // Salvar dados com meta de água calculada
+    const profileData = {
+      ...formData,
+      waterGoal,
+      caloriesGoal: 2000, // Valor padrão, pode ser calculado depois
+    };
+    
+    localStorage.setItem('userProfile', JSON.stringify(profileData));
+    
+    // Redirecionar para o checkout Keoto
+    window.open('https://checkout.keoto.com/e23e05d8-3f10-46a6-b6ef-fbcdd9acd7d8', '_blank');
+    
+    // Após abrir o checkout, redirecionar para home
+    router.push('/home');
+  };
+
+  const handleCheckout = () => {
+    // Abrir checkout Keoto em nova aba
+    window.open('https://checkout.keoto.com/e23e05d8-3f10-46a6-b6ef-fbcdd9acd7d8', '_blank');
   };
 
   const canContinue = () => {
@@ -85,13 +98,15 @@ export default function CadastroPage() {
         return formData.achievements.length > 0;
       case 'testimonials':
         return true;
+      case 'checkout':
+        return true;
       default:
         return false;
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-100 p-4 z-10">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
@@ -206,7 +221,7 @@ export default function CadastroPage() {
             <div className="space-y-3">
               <OptionCard
                 icon={<Dumbbell />}
-                title="2 vezes"
+                title="0 a 2"
                 description="Iniciante ou rotina leve"
                 selected={formData.weeklyWorkouts === '2'}
                 onClick={() => setFormData({ ...formData, weeklyWorkouts: '2' })}
@@ -436,6 +451,67 @@ export default function CadastroPage() {
             </div>
           </div>
         )}
+
+        {/* Checkout */}
+        {step === 'checkout' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Assine o Premium</h2>
+              <p className="text-gray-600">Desbloqueie todos os recursos</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-200">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Star className="w-6 h-6 text-white fill-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-green-900 mb-1">Plano Premium</h3>
+                  <p className="text-3xl font-bold text-green-600 mb-3">R$ 29,90/mês</p>
+                  <ul className="space-y-2 text-sm text-green-800">
+                    <li className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      Análise de calorias com IA
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      Planos personalizados
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      Acompanhamento diário
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      Suporte prioritário
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleCheckout}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl active:scale-95"
+            >
+              <CreditCard className="w-6 h-6" />
+              Pagar com Keoto
+            </button>
+
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <Shield className="w-4 h-4" />
+              <span>Pagamento 100% seguro</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer com botão */}
@@ -443,11 +519,11 @@ export default function CadastroPage() {
         <div className="max-w-2xl mx-auto">
           <Button
             size="lg"
-            onClick={handleNext}
+            onClick={step === 'checkout' ? handleFinish : handleNext}
             disabled={!canContinue()}
             className="w-full"
           >
-            {step === 'testimonials' ? 'Começar agora' : 'Continuar'}
+            {step === 'checkout' ? 'Entrar no aplicativo' : step === 'testimonials' ? 'Continuar' : 'Continuar'}
           </Button>
         </div>
       </div>

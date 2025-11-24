@@ -16,10 +16,6 @@ export default function SplashScreen() {
     router.push('/cadastro');
   };
 
-  const handleSmartwatchClick = () => {
-    router.push('/smartwatch');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col items-center justify-center p-6">
       {/* Logo e Título */}
@@ -79,22 +75,16 @@ export default function SplashScreen() {
         {[
           { icon: '📸', text: 'Scanner inteligente de refeições' },
           { icon: '🎯', text: 'Metas personalizadas de calorias' },
-          { icon: '⌚', text: 'Conexão com smartwatch', action: handleSmartwatchClick },
+          { icon: '⌚', text: 'Conexão com smartwatch' },
           { icon: '📊', text: 'Relatórios detalhados de progresso' },
         ].map((feature, index) => (
-          <button
+          <div
             key={index}
-            onClick={feature.action}
-            className={`flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-full text-left ${
-              feature.action ? 'hover:border-purple-300 hover:shadow-md transition-all cursor-pointer' : ''
-            }`}
+            className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm"
           >
             <span className="text-3xl">{feature.icon}</span>
             <span className="text-gray-700">{feature.text}</span>
-            {feature.action && (
-              <span className="ml-auto text-purple-500 font-semibold">→</span>
-            )}
-          </button>
+          </div>
         ))}
       </div>
 

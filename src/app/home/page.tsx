@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/custom/Button';
-import { Camera, Plus, TrendingUp, Utensils, Dumbbell, User, Target, Zap, Droplet, Image as ImageIcon, Loader2, Play, Square, MapPin, Check, Info, AlertCircle, X, Sparkles, Navigation, Activity } from 'lucide-react';
+import { Camera, Plus, TrendingUp, Utensils, Dumbbell, User, Target, Zap, Droplet, Image as ImageIcon, Loader2, Play, Square, MapPin, Check, Info, AlertCircle, X, Sparkles } from 'lucide-react';
 
 interface Meal {
   id?: string;
@@ -30,17 +30,6 @@ interface AnalysisResult {
   sources?: string;
 }
 
-interface ActivitySession {
-  id: string;
-  startTime: number;
-  endTime?: number;
-  distance: number;
-  duration: number;
-  caloriesBurned: number;
-  avgSpeed: number;
-  locations: Location[];
-}
-
 export default function HomePage() {
   const router = useRouter();
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
@@ -57,32 +46,12 @@ export default function HomePage() {
   const [showAnalysisResult, setShowAnalysisResult] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   
-  // Estados para rastreamento de atividade física
-  const [activitySessions, setActivitySessions] = useState<ActivitySession[]>([]);
-  const [totalDistance, setTotalDistance] = useState(0);
-  const [showActivityDialog, setShowActivityDialog] = useState(false);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Carregar dados do usuário
   useEffect(() => {
     loadUserData();
-  }, []);
-
-  // Carregar sessões de atividade salvas
-  useEffect(() => {
-    const savedSessions = localStorage.getItem('activitySessions');
-    if (savedSessions) {
-      const sessions = JSON.parse(savedSessions);
-      setActivitySessions(sessions);
-      
-      // Calcular distância total e calorias queimadas
-      const total = sessions.reduce((sum: number, session: ActivitySession) => sum + session.distance, 0);
-      const totalCalories = sessions.reduce((sum: number, session: ActivitySession) => sum + session.caloriesBurned, 0);
-      setTotalDistance(total);
-      setCaloriesBurned(totalCalories);
-    }
   }, []);
 
   const loadUserData = async () => {
@@ -100,12 +69,8 @@ export default function HomePage() {
       setUserName(userData.name);
       setCaloriesGoal(userData.caloriesGoal || 2000);
       
-      // Carregar meta de água do perfil (calculada no cadastro)
-      if (userData.waterGoal) {
-        setWaterGoal(userData.waterGoal);
-      } else if (userData.currentWeight) {
-        // Fallback: calcular se não existir
-        setWaterGoal(Math.round(parseFloat(userData.currentWeight) * 35));
+      if (userData.weight) {
+        setWaterGoal(userData.weight * 35);
       }
 
       // Carregar refeições do localStorage
@@ -129,21 +94,6 @@ export default function HomePage() {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Formatar duração
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
     }
   };
 
@@ -362,13 +312,11 @@ export default function HomePage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 p-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-black">BR CAL AI</h1>
-              <p className="text-gray-500 text-sm">
-                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-black">Cal AI</h1>
+            <p className="text-gray-500 text-sm">
+              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
           </div>
           <button 
             onClick={() => handleNavigate('perfil')}
@@ -432,8 +380,8 @@ export default function HomePage() {
             <p className="text-gray-400 text-xs">kcal</p>
           </div>
           <div className="bg-gray-50 rounded-2xl p-4 text-center">
-            <p className="text-gray-500 text-xs mb-1">Queimadas</p>
-            <p className="text-2xl font-bold text-green-600">{caloriesBurned}</p>
+            <p className="text-gray-500 text-xs mb-1">Restantes</p>
+            <p className="text-2xl font-bold text-green-600">{caloriesRemaining}</p>
             <p className="text-gray-400 text-xs">kcal</p>
           </div>
         </div>
@@ -450,72 +398,6 @@ export default function HomePage() {
               style={{ width: `${Math.min(percentage, 100)}%` }}
             />
           </div>
-          <div className="mt-3 text-center">
-            <p className="text-sm text-gray-600">
-              Restantes: <span className="font-bold text-green-600">{caloriesRemaining}</span> kcal
-            </p>
-          </div>
-        </div>
-
-        {/* Meta de Água Diária */}
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl p-6 border border-blue-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                <Droplet className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-blue-900">Hidratação Diária</h3>
-                <p className="text-sm text-blue-600">Meta: {waterGoal} ml</p>
-              </div>
-            </div>
-            <span className="text-2xl font-bold text-blue-900">{waterPercentage.toFixed(0)}%</span>
-          </div>
-
-          {/* Barra de Progresso de Água */}
-          <div className="w-full bg-blue-100 rounded-full h-4 overflow-hidden mb-4">
-            <div 
-              className={`h-full bg-gradient-to-r ${getWaterProgressColor()} transition-all duration-500`}
-              style={{ width: `${Math.min(waterPercentage, 100)}%` }}
-            />
-          </div>
-
-          {/* Quantidade Atual */}
-          <div className="text-center mb-4">
-            <p className="text-3xl font-bold text-blue-900">{waterConsumed} ml</p>
-            <p className="text-sm text-blue-600">
-              Faltam {Math.max(0, waterGoal - waterConsumed)} ml para sua meta
-            </p>
-          </div>
-
-          {/* Botões de Adição Rápida */}
-          <div className="grid grid-cols-4 gap-3">
-            {[200, 300, 500, 1000].map((amount) => (
-              <button
-                key={amount}
-                onClick={() => handleAddWater(amount)}
-                disabled={waterConsumed >= waterGoal}
-                className={`p-4 rounded-xl font-bold transition-all ${
-                  waterConsumed >= waterGoal
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-95'
-                }`}
-              >
-                <Droplet className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-xs">+{amount}ml</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Mensagem de Conquista */}
-          {waterConsumed >= waterGoal && (
-            <div className="mt-4 bg-green-500 text-white rounded-xl p-4 text-center animate-fade-in">
-              <p className="font-bold flex items-center justify-center gap-2">
-                <Check className="w-5 h-5" />
-                Meta de água atingida! 🎉
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Refeições do Dia */}
@@ -551,76 +433,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
-      {/* Activity Sessions Dialog */}
-      {showActivityDialog && (
-        <div className="fixed inset-0 bg-black/80 flex items-end justify-center z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between z-10">
-              <h3 className="text-xl font-bold text-black">Histórico de Atividades</h3>
-              <button
-                onClick={() => setShowActivityDialog(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-600" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-4">
-              {activitySessions.map((session) => (
-                <div key={session.id} className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-green-600" />
-                      <p className="font-bold text-black">
-                        {new Date(session.startTime).toLocaleDateString('pt-BR', { 
-                          day: '2-digit', 
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <span className="bg-green-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
-                      {session.caloriesBurned} kcal
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <MapPin className="w-5 h-5 mx-auto mb-1 text-green-600" />
-                      <p className="text-2xl font-bold text-black">{session.distance.toFixed(2)}</p>
-                      <p className="text-xs text-gray-600">km</p>
-                    </div>
-                    <div className="text-center">
-                      <Activity className="w-5 h-5 mx-auto mb-1 text-green-600" />
-                      <p className="text-2xl font-bold text-black">{formatDuration(session.duration)}</p>
-                      <p className="text-xs text-gray-600">tempo</p>
-                    </div>
-                    <div className="text-center">
-                      <Navigation className="w-5 h-5 mx-auto mb-1 text-green-600" />
-                      <p className="text-2xl font-bold text-black">{session.avgSpeed.toFixed(1)}</p>
-                      <p className="text-xs text-gray-600">km/h</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
-              <button
-                onClick={() => setShowActivityDialog(false)}
-                className="w-full bg-black text-white p-5 rounded-2xl font-bold hover:bg-gray-800 transition-all"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Analysis Result Dialog - Estilo Cal AI */}
       {showAnalysisResult && analysisResult && (
